@@ -39,8 +39,8 @@ app_include_css = "hrms.bundle.css"
 # website_theme_scss = "hrms/public/scss/website"
 
 # include js, css files in header of web form
-# webform_include_js = {"doctype": "public/js/doctype.js"}
-# webform_include_css = {"doctype": "public/css/doctype.css"}
+webform_include_js = {"Job Applicant": "public/js/recruitment/job_application_form.js"}
+webform_include_css = {"Job Applicant": "public/css/recruitment/job_application_form.css"}
 
 # include js in page
 # page_js = {"page" : "public/js/file.js"}
@@ -55,6 +55,9 @@ doctype_js = {
 	"Journal Entry": "public/js/erpnext/journal_entry.js",
 	"Delivery Trip": "public/js/erpnext/delivery_trip.js",
 	"Bank Transaction": "public/js/erpnext/bank_transaction.js",
+	"Job Applicant": "public/js/recruitment/job_applicant_candidate_view.js",
+	"Job Opening": "public/js/recruitment/job_opening.js",
+	"Job Opening Template": "public/js/recruitment/job_opening.js",
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -209,6 +212,7 @@ doc_events = {
 	},
 	"Loan": {"validate": "hrms.hr.utils.validate_loan_repay_from_salary"},
 	"Employee": {
+		"before_insert": "hrms.overrides.employee_master.copy_job_applicant_history",
 		"validate": "hrms.overrides.employee_master.validate_onboarding_process",
 		"on_update": [
 			"hrms.overrides.employee_master.update_approver_role",
@@ -220,6 +224,10 @@ doc_events = {
 		],
 		"on_trash": "hrms.overrides.employee_master.update_employee_transfer",
 		"after_delete": "hrms.overrides.employee_master.publish_update",
+	},
+	"Job Applicant": {
+		"before_insert": "hrms.overrides.job_applicant.before_insert",
+		"validate": "hrms.overrides.job_applicant.validate",
 	},
 	"Project": {"validate": "hrms.controllers.employee_boarding_controller.update_employee_boarding_status"},
 	"Task": {"on_update": "hrms.controllers.employee_boarding_controller.update_task"},
@@ -237,7 +245,11 @@ doc_events = {
 	"Shift Type": {"after_insert": "hrms.telemetry.on_milestone_insert"},
 	"Leave Type": {"after_insert": "hrms.telemetry.on_milestone_insert"},
 	"Salary Structure": {"after_insert": "hrms.telemetry.on_milestone_insert"},
-	"Job Opening": {"after_insert": "hrms.telemetry.on_milestone_insert"},
+	"Job Opening": {
+		"validate": "hrms.overrides.job_opening.validate",
+		"after_insert": "hrms.telemetry.on_milestone_insert",
+	},
+	"Job Opening Template": {"validate": "hrms.overrides.job_opening.validate"},
 	"Appraisal Cycle": {"after_insert": "hrms.telemetry.on_milestone_insert"},
 	"Employee Onboarding": {"after_insert": "hrms.telemetry.on_milestone_insert"},
 	"Salary Slip": {"on_submit": "hrms.telemetry.on_milestone_submit"},

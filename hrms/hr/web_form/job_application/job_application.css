@@ -1,0 +1,2 @@
+/* Frappe only appends webform_include_css files (hrms/public/css/recruitment/job_application_form.css)
+   to a standard web form's own stylesheet when this file exists, so keep it even if empty. */

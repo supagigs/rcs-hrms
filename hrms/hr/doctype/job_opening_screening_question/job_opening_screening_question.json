@@ -1,0 +1,128 @@
+{
+ "actions": [],
+ "creation": "2026-09-25 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "question",
+  "question_type",
+  "is_mandatory",
+  "is_active",
+  "description",
+  "options",
+  "settings_section",
+  "min_value",
+  "max_value",
+  "currency",
+  "settings_column",
+  "min_length",
+  "max_length"
+ ],
+ "fields": [
+  {
+   "columns": 4,
+   "fieldname": "question",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Question",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "default": "Short Text",
+   "fieldname": "question_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Question Type",
+   "options": "Short Text\nLong Text\nNumber\nCurrency\nYes/No\nSingle Select (Radio)\nMultiple Select\nDropdown\nDate\nURL\nEmail",
+   "reqd": 1
+  },
+  {
+   "columns": 1,
+   "default": "0",
+   "fieldname": "is_mandatory",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Mandatory"
+  },
+  {
+   "columns": 1,
+   "default": "1",
+   "description": "Inactive questions are not asked. Deactivate a question instead of deleting it once applicants have answered it.",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Active"
+  },
+  {
+   "description": "Help text shown under the question on the application form",
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "depends_on": "eval:[\"Single Select (Radio)\", \"Multiple Select\", \"Dropdown\"].includes(doc.question_type)",
+   "description": "One option per line",
+   "fieldname": "options",
+   "fieldtype": "Small Text",
+   "label": "Options",
+   "mandatory_depends_on": "eval:[\"Single Select (Radio)\", \"Multiple Select\", \"Dropdown\"].includes(doc.question_type)"
+  },
+  {
+   "depends_on": "eval:[\"Number\", \"Currency\", \"Short Text\", \"Long Text\"].includes(doc.question_type)",
+   "fieldname": "settings_section",
+   "fieldtype": "Section Break",
+   "label": "Validation"
+  },
+  {
+   "depends_on": "eval:[\"Number\", \"Currency\"].includes(doc.question_type)",
+   "fieldname": "min_value",
+   "fieldtype": "Float",
+   "label": "Minimum Value"
+  },
+  {
+   "depends_on": "eval:[\"Number\", \"Currency\"].includes(doc.question_type)",
+   "fieldname": "max_value",
+   "fieldtype": "Float",
+   "label": "Maximum Value"
+  },
+  {
+   "depends_on": "eval:doc.question_type == \"Currency\"",
+   "description": "Defaults to the Job Opening's currency",
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency"
+  },
+  {
+   "fieldname": "settings_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:[\"Short Text\", \"Long Text\"].includes(doc.question_type)",
+   "fieldname": "min_length",
+   "fieldtype": "Int",
+   "label": "Minimum Length"
+  },
+  {
+   "depends_on": "eval:[\"Short Text\", \"Long Text\"].includes(doc.question_type)",
+   "description": "Capped at 140 characters for Short Text and 2000 for Long Text",
+   "fieldname": "max_length",
+   "fieldtype": "Int",
+   "label": "Maximum Length"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-29 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "Job Opening Screening Question",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
