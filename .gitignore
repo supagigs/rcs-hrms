@@ -22,3 +22,4 @@ hrms/public/roster
 hrms/www/roster.html
 
 /.agents
+skills-lock.json
