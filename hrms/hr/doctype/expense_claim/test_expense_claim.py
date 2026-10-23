@@ -16,7 +16,7 @@ from hrms.hr.doctype.expense_claim.expense_claim import (
 	get_outstanding_amount_for_claim,
 	make_expense_claim_for_delivery_trip,
 )
-from hrms.tests.utils import HRMSTestSuite
+from hrms.tests.utils import HRMSTestSuite, make_user
 
 company_name = "_Test Company 3"
 
@@ -849,6 +849,105 @@ class TestExpenseClaim(HRMSTestSuite):
 		expense_claim.company = "_Test Company 3"
 		expense_claim.department = "Accounts - _TC2"
 		self.assertRaises(MismatchError, expense_claim.save)
+
+	def test_company_must_match_employee_company(self):
+		employee = make_employee("test_other_company_claim@example.com", company="_Test Company 3")
+		payable_account = get_payable_account("_Test Company")
+		expense_claim = make_expense_claim(
+			payable_account,
+			300,
+			200,
+			"_Test Company",
+			"Travel Expenses - _TC",
+			do_not_submit=True,
+			employee=employee,
+		)
+		self.assertRaises(MismatchError, expense_claim.save)
+
+	def test_employee_can_only_claim_for_self(self):
+		employee = make_employee("test_self_claim@example.com", company="_Test Company")
+		other_employee = make_employee("test_other_claim@example.com", company="_Test Company")
+		hr_user = make_user("test_hr_claim@example.com", "HR User")
+		payable_account = get_payable_account("_Test Company")
+
+		def claim_for(claim_employee):
+			return make_expense_claim(
+				payable_account,
+				300,
+				200,
+				"_Test Company",
+				"Travel Expenses - _TC",
+				do_not_submit=True,
+				employee=claim_employee,
+			)
+
+		# user permissions are bypassed so that the controller check is what gets exercised
+		frappe.db.delete("User Permission", {"user": "test_self_claim@example.com"})
+		frappe.clear_cache(user="test_self_claim@example.com")
+
+		frappe.set_user("test_self_claim@example.com")
+		self.assertRaises(frappe.PermissionError, claim_for(other_employee).insert)
+
+		own_claim = claim_for(employee).insert()
+		own_claim.employee = other_employee
+		self.assertRaises(frappe.PermissionError, own_claim.save)
+
+		frappe.set_user(hr_user)
+		claim_for(other_employee).insert()
+
+		frappe.set_user("Administrator")
+
+	def test_role_permission_allows_claim_for_others(self):
+		from frappe.permissions import add_permission, update_permission_property
+
+		employee = make_employee("test_accounts_claim@example.com", company="_Test Company")
+		accounts_user = make_user("test_accounts_user_claim@example.com", "Accounts User")
+		payable_account = get_payable_account("_Test Company")
+
+		add_permission("Expense Claim", "Accounts User", 0, "create")
+		update_permission_property("Expense Claim", "Accounts User", 0, "write", 1)
+		self.addCleanup(frappe.clear_cache, doctype="Expense Claim")
+
+		frappe.set_user(accounts_user)
+		make_expense_claim(
+			payable_account,
+			300,
+			200,
+			"_Test Company",
+			"Travel Expenses - _TC",
+			do_not_submit=True,
+			employee=employee,
+		).insert()
+
+		frappe.set_user("Administrator")
+
+	def test_self_service_user_cannot_claim_for_others(self):
+		make_employee("test_ess_claim@example.com", company="_Test Company")
+		other_employee = make_employee("test_ess_other_claim@example.com", company="_Test Company")
+		payable_account = get_payable_account("_Test Company")
+
+		ess_user = frappe.get_doc("User", "test_ess_claim@example.com")
+		ess_user.user_type = "Employee Self Service"
+		ess_user.save()
+
+		# user permissions are bypassed so that the controller check is what gets exercised
+		frappe.db.delete("User Permission", {"user": ess_user.name})
+		frappe.clear_cache(user=ess_user.name)
+
+		frappe.set_user(ess_user.name)
+		self.assertIn("Employee Self Service", frappe.get_roles())
+		expense_claim = make_expense_claim(
+			payable_account,
+			300,
+			200,
+			"_Test Company",
+			"Travel Expenses - _TC",
+			do_not_submit=True,
+			employee=other_employee,
+		)
+		self.assertRaises(frappe.PermissionError, expense_claim.insert)
+
+		frappe.set_user("Administrator")
 
 	def test_self_expense_approval(self):
 		frappe.db.set_single_value("HR Settings", "prevent_self_expense_approval", 0)

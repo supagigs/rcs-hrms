@@ -35,6 +35,9 @@ class ExpenseApproverIdentityError(frappe.ValidationError):
 	pass
 
 
+SELF_SERVICE_ROLES = {"Employee", "Employee Self Service"}
+
+
 class MismatchError(frappe.ValidationError):
 	pass
 
@@ -51,6 +54,7 @@ class ExpenseClaim(AccountsController, PWANotificationsMixin):
 
 	def validate(self):
 		validate_active_employee(self.employee)
+		self.validate_employee_scope()
 		set_employee_name(self)
 		self.set_company_currency_if_multi_currency_disabled()
 		self.validate_sanctioned_amount()
@@ -102,6 +106,41 @@ class ExpenseClaim(AccountsController, PWANotificationsMixin):
 			self.notify_update()
 		else:
 			self.status = status
+
+	def validate_employee_scope(self):
+		if not self.employee:
+			return
+
+		employee_company, employee_user = frappe.db.get_value(
+			"Employee", self.employee, ["company", "user_id"]
+		)
+		if not self.company:
+			self.company = employee_company
+		elif self.company != employee_company:
+			frappe.throw(
+				_("Employee {0} does not belong to company: {1}").format(self.employee, self.company),
+				exc=MismatchError,
+			)
+
+		if self.flags.ignore_permissions:
+			return
+
+		if employee_user != frappe.session.user and not self.can_claim_for_others():
+			frappe.throw(
+				_("You are not allowed to create or modify an Expense Claim for Employee {0}").format(
+					self.employee
+				),
+				frappe.PermissionError,
+			)
+
+	def can_claim_for_others(self):
+		# write access from self-service roles is meant for the employee's own claims only
+		roles_with_write = {
+			perm.role
+			for perm in frappe.get_meta(self.doctype).permissions
+			if perm.write and not perm.permlevel
+		}
+		return bool((roles_with_write - SELF_SERVICE_ROLES) & set(frappe.get_roles()))
 
 	def validate_company_and_department(self):
 		if self.department:

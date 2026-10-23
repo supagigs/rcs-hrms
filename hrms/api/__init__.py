@@ -293,7 +293,6 @@ def get_shift_request_approvers(employee: str) -> str | list[str]:
 
 	department_approvers = []
 	if department:
-		frappe.has_permission("Department", "read", department, throw=True)
 		department_approvers = get_department_approvers(department, "shift_request_approver")
 		if not shift_request_approver:
 			shift_request_approver = frappe.db.get_value(
@@ -356,6 +355,7 @@ def get_leave_applications(
 		"employee_name",
 		"leave_type",
 		"status",
+		"docstatus",
 		"from_date",
 		"to_date",
 		"half_day",
@@ -416,11 +416,11 @@ def get_leave_balance_map() -> dict[str, dict[str, float]]:
 
 @frappe.whitelist()
 def get_holidays_for_employee(employee: str) -> list[dict]:
+	frappe.has_permission("Employee", "read", employee, throw=True)
+
 	holiday_list = get_holiday_list_for_employee(employee, raise_exception=False)
 	if not holiday_list:
 		return []
-
-	frappe.has_permission("Holiday List", "read", holiday_list, throw=True)
 
 	Holiday = frappe.qb.DocType("Holiday")
 	holidays = (
@@ -446,7 +446,6 @@ def get_leave_approval_details(employee: str) -> dict:
 	)
 
 	if not leave_approver and department:
-		frappe.has_permission("Department", "read", department, throw=True)
 		leave_approver = frappe.db.get_value(
 			"Department Approver",
 			{"parent": department, "parentfield": "leave_approvers", "idx": 1},
@@ -625,7 +624,6 @@ def get_expense_approval_details(employee: str) -> dict:
 	)
 
 	if not expense_approver and department:
-		frappe.has_permission("Department", "read", department, throw=True)
 		expense_approver = frappe.db.get_value(
 			"Department Approver",
 			{"parent": department, "parentfield": "expense_approvers", "idx": 1},
@@ -680,23 +678,13 @@ def get_employee_advance_balance() -> list[dict]:
 # Company
 @frappe.whitelist()
 def get_company_currencies() -> dict:
-	Company = frappe.qb.DocType("Company")
-	Currency = frappe.qb.DocType("Currency")
-
-	query = (
-		frappe.qb.from_(Company)
-		.join(Currency)
-		.on(Company.default_currency == Currency.name)
-		.select(
-			Company.name,
-			Company.default_currency,
-			Currency.name.as_("currency"),
-			Currency.symbol.as_("symbol"),
-		)
-	)
-
-	companies = query.run(as_dict=True)
-	return {company.name: (company.default_currency, company.symbol) for company in companies}
+	companies = frappe.get_list("Company", fields=["name", "default_currency"])
+	symbols = get_currency_symbols()
+	return {
+		company.name: (company.default_currency, symbols.get(company.default_currency))
+		for company in companies
+		if company.default_currency in symbols
+	}
 
 
 @frappe.whitelist()
