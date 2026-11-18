@@ -508,6 +508,66 @@ class TestSalarySlip(HRMSTestSuite):
 
 		self.assertEqual(ss.payment_days, days_in_month - no_of_holidays - 3.75)
 
+	def _get_lwp_for_partially_paid_leave(self, payroll_based_on, email, leave_type, half_day=False):
+		emp_id = make_employee(email, company="_Test Company")
+		frappe.db.set_value("Employee", emp_id, {"relieving_date": None, "status": "Active"})
+
+		leave_date = add_days(get_first_sunday(), 4)
+		alloc = create_leave_allocation(
+			employee=emp_id,
+			from_date=leave_date,
+			to_date=add_days(leave_date, 6),
+			new_leaves_allocated=3,
+			leave_type=leave_type,
+		)
+		alloc.save()
+		alloc.submit()
+
+		make_leave_application(
+			emp_id,
+			leave_date,
+			leave_date,
+			leave_type,
+			half_day=half_day,
+			half_day_date=leave_date if half_day else None,
+		)
+
+		with self.change_settings("Payroll Settings", {"payroll_based_on": payroll_based_on}):
+			ss = make_employee_salary_slip(
+				emp_id,
+				"Monthly",
+				"Test Payment Based On Leave Application",
+			)
+
+		return ss.leave_without_pay
+
+	def test_partially_paid_leave_lwp_is_consistent_across_payroll_based_on(self):
+		"""
+		Fraction of Daily Salary per Leave is the share of the day that is paid,
+		so LWP must be (1 - fraction) whether payroll is based on Leave or Attendance
+		"""
+		test_cases = (
+			# fraction, half day, expected LWP for the day
+			(0.6, False, 0.4),
+			(0.6, True, 0.2),
+			(0.25, False, 0.75),
+			(1, False, 0),
+		)
+
+		for fraction, half_day, expected_lwp in test_cases:
+			leave_type = f"Test PPL {int(fraction * 100)}"
+			create_leave_type(
+				leave_type_name=leave_type, is_ppl=1, fraction_of_daily_salary_per_leave=fraction
+			)
+
+			for payroll_based_on in ("Leave", "Attendance"):
+				with self.subTest(fraction=fraction, half_day=half_day, payroll_based_on=payroll_based_on):
+					email = f"test_ppl_{payroll_based_on}_{int(fraction * 100)}_{int(half_day)}@salary.com".lower()
+					lwp = self._get_lwp_for_partially_paid_leave(
+						payroll_based_on, email, leave_type, half_day=half_day
+					)
+					self.assertEqual(flt(lwp, 2), expected_lwp)
+
 	@HRMSTestSuite.change_settings("Payroll Settings", {"payroll_based_on": "Leave"})
 	def test_payment_days_calculation_for_lwp_on_month_boundaries(self):
 		from hrms.hr.doctype.holiday_list_assignment.test_holiday_list_assignment import (
@@ -2158,6 +2218,64 @@ class TestSalarySlip(HRMSTestSuite):
 		self.assertEqual(salary_slip.current_structured_tax_amount, 0.0)
 
 		frappe.db.rollback()
+
+	def test_tax_in_joining_month_when_tax_depends_on_payment_days(self):
+		from hrms.payroll.doctype.salary_structure.test_salary_structure import make_salary_structure
+
+		payroll_period = create_payroll_period(company="_Test Company")
+		joining_date = add_days(payroll_period.start_date, 16)
+		employee = make_employee(
+			"test_tax_joining_month@salary.slip", company="_Test Company", date_of_joining=joining_date
+		)
+
+		salary_structure = make_salary_structure(
+			"Structure to test tax in joining month",
+			"Monthly",
+			test_tax=True,
+			from_date=joining_date,
+			employee=employee,
+			company="_Test Company",
+		)
+		frappe.db.set_value("Salary Component", "TDS", "depends_on_payment_days", 1)
+
+		salary_slip = make_salary_slip(salary_structure.name, employee=employee, posting_date=joining_date)
+
+		# the joining month counts as a fraction of a period: 11 full months + payment days share
+		payment_days_share = salary_slip.payment_days / salary_slip.total_working_days
+		tax = next(d.amount for d in salary_slip.deductions if d.salary_component == "TDS")
+		self.assertEqual(
+			tax,
+			rounded(salary_slip.total_structured_tax_amount / (11 + payment_days_share) * payment_days_share),
+		)
+		# income tax breakup shows the tax deducted in this slip
+		self.assertEqual(rounded(salary_slip.current_month_income_tax), tax)
+		self.assertEqual(rounded(salary_slip.income_tax_deducted_till_date), tax)
+
+	def test_tax_in_relieving_month_when_tax_depends_on_payment_days(self):
+		from hrms.payroll.doctype.salary_structure.test_salary_structure import make_salary_structure
+
+		payroll_period = create_payroll_period(company="_Test Company")
+		relieving_date = add_days(payroll_period.start_date, 14)
+		employee = make_employee("test_tax_relieving_month@salary.slip", company="_Test Company")
+		frappe.db.set_value("Employee", employee, "relieving_date", relieving_date)
+
+		salary_structure = make_salary_structure(
+			"Structure to test tax in relieving month",
+			"Monthly",
+			test_tax=True,
+			from_date=payroll_period.start_date,
+			employee=employee,
+			company="_Test Company",
+			base=1000000,
+		)
+		frappe.db.set_value("Salary Component", "TDS", "depends_on_payment_days", 1)
+
+		salary_slip = make_salary_slip(salary_structure.name, employee=employee, posting_date=relieving_date)
+
+		# the relieving month is the last period, so the slip deducts all the tax for the year
+		self.assertTrue(salary_slip.total_structured_tax_amount)
+		tax = next(d.amount for d in salary_slip.deductions if d.salary_component == "TDS")
+		self.assertEqual(tax, rounded(salary_slip.total_structured_tax_amount))
 
 	@HRMSTestSuite.change_settings("Payroll Settings", {"payroll_based_on": "Leave"})
 	def test_lwp_calculation_based_on_relieving_date(self):

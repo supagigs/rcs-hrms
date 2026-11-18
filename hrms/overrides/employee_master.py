@@ -102,7 +102,10 @@ def get_linked_job_offer(doc, job_applicant: str | None):
 	offer_name = doc.get("job_offer")
 	if not offer_name and job_applicant:
 		offer_name = frappe.db.get_value(
-			"Job Offer", {"job_applicant": job_applicant, "docstatus": ["!=", 2]}, "name"
+			"Job Offer",
+			{"job_applicant": job_applicant, "docstatus": ["!=", 2]},
+			"name",
+			order_by="creation desc",
 		)
 	if not offer_name:
 		return None
@@ -232,7 +235,8 @@ def get_assignable_masters(company: str) -> dict[str, bool]:
 	}
 
 	return {
-		doctype: bool(frappe.get_list(doctype, filters=filters, limit=1, pluck="name"))
+		doctype: frappe.has_permission(doctype, "select")
+		and bool(frappe.get_list(doctype, filters=filters, limit=1, pluck="name"))
 		for doctype, filters in masters.items()
 	}
 
