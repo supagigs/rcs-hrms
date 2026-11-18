@@ -114,6 +114,46 @@ def get_linked_job_offer(doc, job_applicant: str | None):
 	return None if job_offer.docstatus == 2 else job_offer
 
 
+def copy_job_applicant_history(doc, method=None):
+	"""Carry the applicant's education and work experience over to a new Employee.
+
+	Covers every way an Employee is created from an applicant (Job Applicant, Job Offer and Employee
+	Onboarding all set job_applicant), and only fills tables that are still empty.
+	"""
+	if not doc.job_applicant or not frappe.get_meta("Job Applicant").has_field("custom_work_experience"):
+		return
+
+	from hrms.hr.screening import format_experience_duration
+
+	if not doc.get("education"):
+		for row in frappe.get_all(
+			"Employee Education",
+			filters={"parenttype": "Job Applicant", "parent": doc.job_applicant},
+			fields=["school_univ", "qualification", "level", "year_of_passing", "class_per", "maj_opt_subj"],
+			order_by="idx asc",
+		):
+			doc.append("education", row)
+
+	if not doc.get("external_work_history"):
+		for row in frappe.get_all(
+			"Job Applicant Work Experience",
+			filters={"parenttype": "Job Applicant", "parent": doc.job_applicant},
+			fields=["company_name", "designation", "location", "from_date", "to_date", "currently_working"],
+			order_by="idx asc",
+		):
+			doc.append(
+				"external_work_history",
+				{
+					"company_name": row.company_name,
+					"designation": row.designation,
+					"address": row.location,
+					"total_experience": format_experience_duration(
+						row.from_date, getdate() if row.currently_working else row.to_date
+					),
+				},
+			)
+
+
 def update_approver_role(doc, method=None):
 	"""Adds relevant approver role for the user linked to Employee"""
 	if doc.leave_approver:

@@ -1,0 +1,123 @@
+/* Job Application web form: Experience & Education grids and the screening questions.
+   Included through webform_include_css (hooks.py). */
+
+/* STEPS */
+
+/* a step's description, under its heading */
+.web-form .form-section-description {
+	padding: 0;
+	margin-bottom: var(--margin-md);
+	color: var(--text-muted);
+}
+
+/* EXPERIENCE & EDUCATION GRIDS */
+
+.web-form :is([data-fieldname="custom_work_experience"], [data-fieldname="custom_education"]) {
+	margin-bottom: var(--margin-lg);
+}
+
+/* the one-column "Current" checkbox: less padding so its heading fits */
+.web-form
+	[data-fieldname="custom_work_experience"]
+	.grid-static-col[data-fieldname="currently_working"] {
+	padding-left: var(--padding-xs) !important;
+	padding-right: var(--padding-xs) !important;
+	text-align: center;
+}
+
+.web-form
+	[data-fieldname="custom_work_experience"]
+	.grid-static-col[data-fieldname="currently_working"]
+	.static-area {
+	text-overflow: clip;
+}
+
+.web-form
+	:is([data-fieldname="custom_work_experience"], [data-fieldname="custom_education"])
+	.grid-footer {
+	padding-top: var(--padding-sm);
+}
+
+@media (max-width: 575px) {
+	/* keep the columns readable and scroll the grid sideways instead of squeezing it */
+	.web-form
+		:is([data-fieldname="custom_work_experience"], [data-fieldname="custom_education"])
+		.form-grid-container {
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.web-form
+		:is([data-fieldname="custom_work_experience"], [data-fieldname="custom_education"])
+		.form-grid:not(:has(.grid-row-open)) {
+		min-width: 640px;
+	}
+
+	/* the row editor takes the full width and stacks its fields */
+	.web-form
+		:is([data-fieldname="custom_work_experience"], [data-fieldname="custom_education"])
+		.grid-row-open
+		.form-in-grid
+		.form-column {
+		flex: 0 0 100%;
+		max-width: 100%;
+	}
+
+	.web-form
+		:is([data-fieldname="custom_work_experience"], [data-fieldname="custom_education"])
+		.grid-footer
+		.grid-add-row {
+		width: 100%;
+		min-height: 36px;
+	}
+}
+
+/* SCREENING QUESTIONS */
+
+.screening-questions .screening-status {
+	margin-bottom: var(--margin-md);
+}
+
+.screening-questions .frappe-control {
+	margin-bottom: var(--margin-lg);
+}
+
+.screening-questions .help-box {
+	margin-top: var(--margin-xs);
+}
+
+.screening-radio-choices {
+	display: flex;
+	flex-direction: column;
+	gap: var(--margin-xs);
+	margin-top: var(--margin-xs);
+}
+
+.screening-radio-choice {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--margin-sm);
+	min-height: 28px;
+	margin: 0;
+	font-weight: normal;
+	cursor: pointer;
+}
+
+.screening-radio-choice input {
+	flex-shrink: 0;
+	margin-top: 3px;
+}
+
+/* MultiCheck sets an inline padding */
+.screening-questions .checkbox-options {
+	padding: var(--padding-xs) 0 !important;
+}
+
+.screening-questions .has-error :is(.screening-radio-choices, .checkbox-options) {
+	padding-left: var(--padding-sm) !important;
+	border-left: 2px solid var(--red-500);
+}
+
+.screening-closed-notice {
+	margin-bottom: var(--margin-lg);
+}

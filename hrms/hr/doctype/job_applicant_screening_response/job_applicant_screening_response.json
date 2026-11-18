@@ -1,0 +1,95 @@
+{
+ "actions": [],
+ "creation": "2026-09-25 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "question",
+  "question_type",
+  "answer",
+  "typed_values_section",
+  "answer_number",
+  "currency",
+  "typed_values_column",
+  "answer_date",
+  "question_row"
+ ],
+ "fields": [
+  {
+   "columns": 3,
+   "description": "The question as it was asked when the applicant applied",
+   "fieldname": "question",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Question",
+   "read_only": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "question_type",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Question Type",
+   "read_only": 1
+  },
+  {
+   "columns": 5,
+   "description": "Multiple Select answers are stored one option per line",
+   "fieldname": "answer",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Answer"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "typed_values_section",
+   "fieldtype": "Section Break",
+   "label": "Typed Values"
+  },
+  {
+   "description": "Number and Currency answers, for filtering and sorting",
+   "fieldname": "answer_number",
+   "fieldtype": "Float",
+   "label": "Answer (Number)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "typed_values_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "answer_date",
+   "fieldtype": "Date",
+   "label": "Answer (Date)",
+   "read_only": 1
+  },
+  {
+   "description": "Row ID of the question on the Job Opening",
+   "fieldname": "question_row",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Question Row",
+   "read_only": 1
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-29 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "Job Applicant Screening Response",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

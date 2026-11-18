@@ -2,6 +2,7 @@ import os
 
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 from frappe.desk.page.setup_wizard.install_fixtures import (
 	_,  # NOTE: this is not the real translation function
 )
@@ -15,6 +16,7 @@ from hrms.subscription_utils import is_new_hr_site, set_hrms_as_default_app
 
 def after_install():
 	create_custom_fields(get_custom_fields(), ignore_validate=True)
+	set_job_applicant_track_changes()
 	rename_employee_details_tab()
 	set_employee_form_layout()
 	create_salary_slip_loan_fields()
@@ -462,6 +464,213 @@ def get_custom_fields():
 				"insert_after": "salary_cb",
 			},
 		],
+		"Job Applicant": [
+			{
+				"fieldname": "custom_candidate_profile_tab",
+				"fieldtype": "Tab Break",
+				"label": _("Additional Details"),
+				"insert_after": "upper_range",
+			},
+			{
+				"fieldname": "custom_social_section",
+				"fieldtype": "Section Break",
+				"label": _("Social Links"),
+				"insert_after": "custom_candidate_profile_tab",
+			},
+			{
+				"fieldname": "custom_linkedin_profile",
+				"fieldtype": "Data",
+				"label": _("LinkedIn Profile"),
+				"options": "URL",
+				"insert_after": "custom_social_section",
+			},
+			{
+				"fieldname": "custom_github_profile",
+				"fieldtype": "Data",
+				"label": _("GitHub Profile"),
+				"options": "URL",
+				"insert_after": "custom_linkedin_profile",
+			},
+			{
+				"fieldname": "custom_social_column",
+				"fieldtype": "Column Break",
+				"insert_after": "custom_github_profile",
+			},
+			{
+				"fieldname": "custom_portfolio_url",
+				"fieldtype": "Data",
+				"label": _("Portfolio / Website"),
+				"options": "URL",
+				"insert_after": "custom_social_column",
+			},
+			{
+				"fieldname": "custom_other_profile_url",
+				"fieldtype": "Data",
+				"label": _("Other Link"),
+				"options": "URL",
+				"insert_after": "custom_portfolio_url",
+			},
+			{
+				"depends_on": "eval:!doc.source_name && !doc.employee_referral",
+				"fieldname": "custom_referral_section",
+				"fieldtype": "Section Break",
+				"label": _("Referred By"),
+				"insert_after": "custom_other_profile_url",
+			},
+			{
+				"depends_on": "eval:!doc.source_name && !doc.employee_referral",
+				"fieldname": "custom_referrer_name",
+				"fieldtype": "Data",
+				"label": _("Referrer Name"),
+				"insert_after": "custom_referral_section",
+			},
+			{
+				"fieldname": "custom_referral_column",
+				"fieldtype": "Column Break",
+				"insert_after": "custom_referrer_name",
+			},
+			{
+				"depends_on": "eval:!doc.source_name && !doc.employee_referral",
+				"fieldname": "custom_referrer_email",
+				"fieldtype": "Data",
+				"label": _("Referrer Email"),
+				"options": "Email",
+				"insert_after": "custom_referral_column",
+			},
+			{
+				"fieldname": "custom_experience_section",
+				"fieldtype": "Section Break",
+				"label": _("Experience & Education"),
+				"insert_after": "custom_referrer_email",
+			},
+			{
+				"description": _("Calculated from Work Experience; overlapping periods are counted once"),
+				"fieldname": "custom_total_experience_years",
+				"fieldtype": "Float",
+				"label": _("Total Experience (Years)"),
+				"precision": "1",
+				"read_only": 1,
+				"insert_after": "custom_experience_section",
+			},
+			{
+				"fieldname": "custom_work_experience",
+				"fieldtype": "Table",
+				"label": _("Work Experience"),
+				"options": "Job Applicant Work Experience",
+				"insert_after": "custom_total_experience_years",
+			},
+			{
+				"fieldname": "custom_education",
+				"fieldtype": "Table",
+				"label": _("Education"),
+				"options": "Employee Education",
+				"insert_after": "custom_work_experience",
+			},
+			{
+				"fieldname": "custom_documents_section",
+				"fieldtype": "Section Break",
+				"label": _("Supporting Documents"),
+				"insert_after": "custom_education",
+			},
+			{
+				"fieldname": "custom_supporting_document_1",
+				"fieldtype": "Attach",
+				"label": _("Supporting Document 1"),
+				"insert_after": "custom_documents_section",
+			},
+			{
+				"fieldname": "custom_documents_column",
+				"fieldtype": "Column Break",
+				"insert_after": "custom_supporting_document_1",
+			},
+			{
+				"fieldname": "custom_supporting_document_2",
+				"fieldtype": "Attach",
+				"label": _("Supporting Document 2"),
+				"insert_after": "custom_documents_column",
+			},
+			{
+				"fieldname": "custom_screening_section",
+				"fieldtype": "Section Break",
+				"label": _("Screening Questions"),
+				"insert_after": "custom_supporting_document_2",
+			},
+			{
+				"fieldname": "custom_screening_responses",
+				"fieldtype": "Table",
+				"label": _("Screening Responses"),
+				"options": "Job Applicant Screening Response",
+				"insert_after": "custom_screening_section",
+			},
+			{
+				"fieldname": "custom_internal_section",
+				"fieldtype": "Section Break",
+				"label": _("Internal"),
+				"insert_after": "custom_screening_responses",
+			},
+			{
+				"fieldname": "custom_internal_notes",
+				"fieldtype": "Text Editor",
+				"label": _("Internal Notes"),
+				"insert_after": "custom_internal_section",
+			},
+			{
+				"fieldname": "custom_consent_section",
+				"fieldtype": "Section Break",
+				"label": _("Consent"),
+				"insert_after": "custom_internal_notes",
+			},
+			{
+				"fieldname": "custom_consent_given",
+				"fieldtype": "Check",
+				"label": _("Consent to Data Processing Given"),
+				"no_copy": 1,
+				"insert_after": "custom_consent_section",
+			},
+			{
+				"depends_on": "custom_consent_given",
+				"fieldname": "custom_consent_given_on",
+				"fieldtype": "Datetime",
+				"label": _("Consent Given On"),
+				"no_copy": 1,
+				"read_only": 1,
+				"insert_after": "custom_consent_given",
+			},
+		],
+		"Job Opening": [
+			{
+				"collapsible": 1,
+				"fieldname": "custom_screening_section",
+				"fieldtype": "Section Break",
+				"label": _("Screening Questions"),
+				"insert_after": "description",
+			},
+			{
+				"description": _("Asked on the public job application form"),
+				"fieldname": "custom_screening_questions",
+				"fieldtype": "Table",
+				"label": _("Screening Questions"),
+				"options": "Job Opening Screening Question",
+				"insert_after": "custom_screening_section",
+			},
+		],
+		"Job Opening Template": [
+			{
+				"collapsible": 1,
+				"fieldname": "custom_screening_section",
+				"fieldtype": "Section Break",
+				"label": _("Screening Questions"),
+				"insert_after": "publish_salary_range",
+			},
+			{
+				"description": _("Copied to a Job Opening when this template is selected"),
+				"fieldname": "custom_screening_questions",
+				"fieldtype": "Table",
+				"label": _("Screening Questions"),
+				"options": "Job Opening Screening Question",
+				"insert_after": "custom_screening_section",
+			},
+		],
 		"Project": [
 			{
 				"fieldname": "total_expense_claim",
@@ -503,6 +712,19 @@ def get_custom_fields():
 			},
 		],
 	}
+
+
+def set_job_applicant_track_changes():
+	"""Record Versions for Job Applicant so status and field changes show up on the candidate timeline"""
+	make_property_setter(
+		"Job Applicant",
+		None,
+		"track_changes",
+		1,
+		"Check",
+		for_doctype=True,
+		validate_fields_for_doctype=False,
+	)
 
 
 def make_fixtures():

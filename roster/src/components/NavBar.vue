@@ -6,7 +6,7 @@
 				Frappe HR
 			</a>
 			<FeatherIcon name="chevron-right" class="h-4 w-4" />
-			<span class="font-medium">Roster</span>
+			<span class="font-medium">{{ route.meta.title || "Roster" }}</span>
 		</div>
 		<Dropdown
 			class="ml-auto"
@@ -36,15 +36,18 @@
 </template>
 
 <script setup lang="ts">
+import { useRoute } from "vue-router";
 import { FeatherIcon, Dropdown, Avatar, createResource } from "frappe-ui";
 import FrappeHRLogo from "../icons/FrappeHRLogo.vue";
 
-import { User } from "../views/Home.vue";
+import { User } from "../layouts/AppLayout.vue";
 import { goTo, raiseToast } from "../utils";
 
 const props = defineProps<{
 	user: User;
 }>();
+
+const route = useRoute();
 
 // RESOURCES
 
